@@ -1,0 +1,78 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarr
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sonarr
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sonarr
+    spec:
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: claim-config-sonarr
+        - name: client
+          persistentVolumeClaim:
+            claimName: claim-media-qbittorrent
+        - name: media
+          persistentVolumeClaim:
+            claimName: claim-media-sonarr
+      containers:
+      - image: linuxserver/sonarr
+        imagePullPolicy: IfNotPresent
+        name: sonarr
+        ports:
+        - containerPort: 8989
+        volumeMounts:
+          - mountPath: /config
+            name: config
+          - mountPath: /downloads
+            name: client
+          - mountPath: /tv
+            name: media
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarr
+spec:
+  ports:
+    - port: 8989
+      targetPort: 8989
+      nodePort: 31002
+      protocol: TCP
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: sonarr
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-config-sonarr
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: config-sonarr
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-media-sonarr
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  volumeName: media-sonarr

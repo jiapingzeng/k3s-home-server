@@ -1,0 +1,75 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx
+    spec:
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: nginx-conf
+            items:
+            - key: nginx.conf
+              path: nginx.conf
+      containers:
+      - image: nginx
+        imagePullPolicy: Always
+        name: nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+          - name: nginx-conf
+            mountPath: /etc/nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 31005
+      protocol: TCP
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: nginx
+---
+# https://github.com/qbittorrent/qBittorrent/wiki/NGINX-Reverse-Proxy-for-Web-UI
+# https://stackoverflow.com/questions/69447844/kubernetes-qbittorrentwebui-showing-only-on-path
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+data:
+  nginx.conf: |
+    user  nginx;
+    worker_processes  auto;
+
+    error_log  /var/log/nginx/error.log notice;
+    pid        /var/run/nginx.pid;
+
+    http {
+            server {
+                    listen 80;
+                    location / {
+                            proxy_pass              http://qbittorrent.default.svc.cluster.local:8080;
+                            proxy_set_header        X-Forwarded-Host        $http_host;
+                            proxy_set_header        X-Forwarded-For         $remote_addr;
+                            #proxy_cookie_path      /                       "/; Secure";
+                    }
+            }
+    }
+
+    events {
+        worker_connections  1024;
+    }

@@ -1,0 +1,55 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prowlarr
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prowlarr
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prowlarr
+    spec:
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: claim-config-prowlarr
+      containers:
+      - image: linuxserver/prowlarr
+        imagePullPolicy: IfNotPresent
+        name: prowlarr
+        ports:
+        - containerPort: 9696
+        volumeMounts:
+          - mountPath: /config
+            name: config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prowlarr
+spec:
+  ports:
+    - port: 9696
+      targetPort: 9696
+      nodePort: 31004
+      protocol: TCP
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: prowlarr
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-config-prowlarr
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: config-prowlarr
