@@ -39,8 +39,8 @@ mounts:
 
 mountType: "virtiofs"
 
-cpus: 4
-memory: 4GiB
+cpus: 2
+memory: 2GiB
 disk: 32GiB
 
 # containerd is managed by k3s, not by Lima, so the values are set to false here.

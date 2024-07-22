@@ -1,0 +1,78 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: radarr
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: radarr
+    spec:
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: claim-config-radarr
+        - name: client
+          persistentVolumeClaim:
+            claimName: claim-media-qbittorrent
+        - name: media
+          persistentVolumeClaim:
+            claimName: claim-media-radarr
+      containers:
+      - image: linuxserver/radarr
+        imagePullPolicy: IfNotPresent
+        name: radarr
+        ports:
+        - containerPort: 7878
+        volumeMounts:
+          - mountPath: /config
+            name: config
+          - mountPath: /downloads
+            name: client
+          - mountPath: /movies
+            name: media
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: radarr
+spec:
+  ports:
+    - port: 7878
+      targetPort: 7878
+      nodePort: 31003
+      protocol: TCP
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: radarr
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-config-radarr
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: config-radarr
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: claim-media-radarr
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  volumeName: media-radarr
